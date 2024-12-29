@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/springBatch?useSSL=false&serverTimezone=UTC
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10  # コネクションプールの最大数
+      minimum-idle: 5         # 最小アイドルコネクション数
+      idle-timeout: 30000     # アイドル状態のコネクションのタイムアウト（ミリ秒）
+      connection-timeout: 30000 # 接続タイムアウト（ミリ秒）
+
+  sql:
+    init:
+      schema-locations: classpath:org/springframework/batch/core/schema-mysql.sql
+      mode: never
+#mode: always
