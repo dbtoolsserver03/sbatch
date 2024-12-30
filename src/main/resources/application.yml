@@ -13,5 +13,9 @@ spring:
   sql:
     init:
       schema-locations: classpath:org/springframework/batch/core/schema-mysql.sql
-      mode: never
-#mode: always
+      mode: always
+#mode: always never
+
+  batch:
+    job:
+      enabled: false   #false表示不启动

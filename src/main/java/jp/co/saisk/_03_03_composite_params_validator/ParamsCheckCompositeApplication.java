@@ -1,4 +1,4 @@
-package jp.co.saisk._03_03_params_validator.copy;
+package jp.co.saisk._03_03_composite_params_validator;
 
 import java.util.Arrays;
 
@@ -22,13 +22,13 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 import jp.co.saisk._03_params_validator.validator.NameParamValidator;
 
 @SpringBootApplication
-public class ParamsCheckApplication03 {
+public class ParamsCheckCompositeApplication {
 
 	public static void main(String[] args) {
 		// 使用 SpringApplication.run 启动 Spring Boot 应用
 		// SpringApplication.exit() 用于退出应用程序并返回一个状态码
 		// SpringApplication.exit() 返回应用程序的退出状态，以便传递给操作系统或调用者
-		System.exit(SpringApplication.exit(SpringApplication.run(ParamsCheckApplication03.class, args)));
+		System.exit(SpringApplication.exit(SpringApplication.run(ParamsCheckCompositeApplication.class, args)));
 	}
 
 	@Bean
