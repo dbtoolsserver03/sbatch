@@ -35,7 +35,7 @@ public class JobListenerApplication01 {
      */
     @Bean
     public Job importUserJob(JobRepository jobRepository, Step step1) throws Exception {
-        return new JobBuilder("Hello", jobRepository)  // 创建一个 Job 构建器
+        return new JobBuilder("job-listener", jobRepository)  // 创建一个 Job 构建器
             .start(step1)  // 定义作业的第一个步骤
             .incrementer(new RunIdIncrementer())
             .listener(jobStateListener())

@@ -38,8 +38,8 @@ public class ParamsIncrApplication01 {
 	 * @throws Exception 
 	 */
 	@Bean
-	public Job importUserJob(JobRepository jobRepository, Step step1) throws Exception {
-		return new JobBuilder("ParamsCheckApplication03", jobRepository) // 创建一个 Job 构建器
+	public Job job(JobRepository jobRepository, Step step1) throws Exception {
+		return new JobBuilder("params-incr", jobRepository) // 创建一个 Job 构建器
 				.start(step1) // 定义作业的第一个步骤
 				.incrementer(dailyTimestampParamIncrementer())
 				.build(); // 构建作业

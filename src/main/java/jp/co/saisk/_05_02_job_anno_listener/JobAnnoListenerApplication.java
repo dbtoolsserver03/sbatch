@@ -14,13 +14,13 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 
 
 @SpringBootApplication
-public class JobListenerApplication02 {
+public class JobAnnoListenerApplication {
 
 	public static void main(String[] args) {
         // 使用 SpringApplication.run 启动 Spring Boot 应用
         // SpringApplication.exit() 用于退出应用程序并返回一个状态码
         // SpringApplication.exit() 返回应用程序的退出状态，以便传递给操作系统或调用者
-        System.exit(SpringApplication.exit(SpringApplication.run(JobListenerApplication02.class, args)));
+        System.exit(SpringApplication.exit(SpringApplication.run(JobAnnoListenerApplication.class, args)));
     }
     
     // tag::jobstep[]
@@ -34,8 +34,8 @@ public class JobListenerApplication02 {
      * @throws Exception 
      */
     @Bean
-    public Job importUserJob(JobRepository jobRepository, Step step1) throws Exception {
-        return new JobBuilder("Hello", jobRepository)  // 创建一个 Job 构建器
+    public Job job(JobRepository jobRepository, Step step1) throws Exception {
+        return new JobBuilder("job-anno-listener", jobRepository)  // 创建一个 Job 构建器
             .start(step1)  // 定义作业的第一个步骤
             .incrementer(new RunIdIncrementer())
             .listener(jobStateAnnoListener())

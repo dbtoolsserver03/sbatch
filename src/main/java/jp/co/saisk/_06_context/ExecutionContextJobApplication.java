@@ -45,7 +45,7 @@ public class ExecutionContextJobApplication {
 	 */
 	@Bean
 	public Job job() throws Exception {
-		return new JobBuilder("Hello", jobRepository) // 创建一个 Job 构建器
+		return new JobBuilder("execution-context", jobRepository) // 创建一个 Job 构建器
 				.start(step1())
 				.next(step2())
 				.incrementer(new RunIdIncrementer())
