@@ -1,4 +1,4 @@
-package jp.co.saisk._06_context;
+package jp.co.saisk._11_step_condition;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -9,7 +9,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -18,11 +17,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 
 @SpringBootApplication
-public class ExecutionContextJobApplication {
+public class ConditionStepJobApplication {
 
 	@Autowired
 	public JobRepository jobRepository;
-	
+
 	@Autowired
 	public JdbcTransactionManager transactionManager;
 
@@ -30,7 +29,7 @@ public class ExecutionContextJobApplication {
 		// 使用 SpringApplication.run 启动 Spring Boot 应用
 		// SpringApplication.exit() 用于退出应用程序并返回一个状态码
 		// SpringApplication.exit() 返回应用程序的退出状态，以便传递给操作系统或调用者
-		System.exit(SpringApplication.exit(SpringApplication.run(ExecutionContextJobApplication.class, args)));
+		System.exit(SpringApplication.exit(SpringApplication.run(ConditionStepJobApplication.class, args)));
 	}
 
 	// tag::jobstep[]
@@ -45,63 +44,67 @@ public class ExecutionContextJobApplication {
 	 */
 	@Bean
 	public Job job() throws Exception {
-		return new JobBuilder("Hello", jobRepository) // 创建一个 Job 构建器
-				.start(step1())
-				.next(step2())
+		return new JobBuilder("condition-step-job", jobRepository) // 创建一个 Job 构建器
+	               //满足xxx条件执行后续逻辑--当前意思：满足firstStep执行返回状态为失败状态：FAILED执行failStep
+                .start(firstStep()).on("FAILED").to(failStep())
+                // * 表示else 逻辑
+                .from(firstStep()).on("*").to(successStep())
+                .end()
 				.incrementer(new RunIdIncrementer())
 				.build(); // 构建作业
 	}
 
 	@Bean
-	public Step step1() {
-		return new StepBuilder("step1", jobRepository).tasklet(tasklet1(), transactionManager).build();
+	public Step firstStep() {
+		return new StepBuilder("firstStep", jobRepository).tasklet(firstStepTasklet(), transactionManager).build();
 
 	}
 
 	@Bean
-	public Step step2() {
-		return new StepBuilder("step2", jobRepository).tasklet(tasklet2(), transactionManager).build();
+	public Step successStep() {
+		return new StepBuilder("successStep", jobRepository).tasklet(successStepTasklet(), transactionManager).build();
+	}
+
+	@Bean
+	public Step failStep() {
+		return new StepBuilder("failStep", jobRepository).tasklet(failStepTasklet(), transactionManager).build();
 	}
 
 	//构造一个step对象执行的任务（逻辑对象）
 	@Bean
-	public Tasklet tasklet1() {
+	public Tasklet firstStepTasklet() {
 		return new Tasklet() {
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				//步骤
-				//可以获取共享数据，但是不允许修改
-				//Map<String, Object> stepExecutionContext = chunkContext.getStepContext().getStepExecutionContext();
-				//通过执行上下文对象获取跟设置参数
-				ExecutionContext stepEC = chunkContext.getStepContext().getStepExecution().getExecutionContext();
-				stepEC.put("key-step1-step", "value-step1-step");
 
-				System.out.println("----------------1---------------");
-				//作业
-				ExecutionContext jobEC = chunkContext.getStepContext().getStepExecution().getJobExecution()
-						.getExecutionContext();
-				jobEC.put("key-step1-job", "value-step1-job");
+				System.out.println("----------------firstStep---------------");
 
+				//throw new RuntimeException("假装失败了");
 				return RepeatStatus.FINISHED; //执行完了
 			}
 		};
 	}
 
 	@Bean
-	public Tasklet tasklet2() {
+	public Tasklet successStepTasklet() {
 		return new Tasklet() {
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				//步骤
-				ExecutionContext stepEC = chunkContext.getStepContext().getStepExecution().getExecutionContext();
-				System.err.println(stepEC.get("key-step1-step"));
-				System.out.println("----------------2---------------");
-				//作业
-				ExecutionContext jobEC = chunkContext.getStepContext().getStepExecution().getJobExecution()
-						.getExecutionContext();
-				System.err.println(jobEC.get("key-step1-job"));
+				System.out.println("----------------successStep---------------");
 				return RepeatStatus.FINISHED; //执行完了
 			}
 		};
 	}
+
+	@Bean
+	public Tasklet failStepTasklet() {
+		return new Tasklet() {
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("----------------failStep---------------");
+				return RepeatStatus.FINISHED; //执行完了
+			}
+		};
+	}
+
 }

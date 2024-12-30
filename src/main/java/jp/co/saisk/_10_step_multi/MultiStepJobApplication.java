@@ -1,4 +1,4 @@
-package jp.co.saisk._06_context;
+package jp.co.saisk._10_step_multi;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -9,7 +9,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -18,7 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 
 @SpringBootApplication
-public class ExecutionContextJobApplication {
+public class MultiStepJobApplication {
 
 	@Autowired
 	public JobRepository jobRepository;
@@ -30,7 +29,7 @@ public class ExecutionContextJobApplication {
 		// 使用 SpringApplication.run 启动 Spring Boot 应用
 		// SpringApplication.exit() 用于退出应用程序并返回一个状态码
 		// SpringApplication.exit() 返回应用程序的退出状态，以便传递给操作系统或调用者
-		System.exit(SpringApplication.exit(SpringApplication.run(ExecutionContextJobApplication.class, args)));
+		System.exit(SpringApplication.exit(SpringApplication.run(MultiStepJobApplication.class, args)));
 	}
 
 	// tag::jobstep[]
@@ -69,18 +68,8 @@ public class ExecutionContextJobApplication {
 		return new Tasklet() {
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				//步骤
-				//可以获取共享数据，但是不允许修改
-				//Map<String, Object> stepExecutionContext = chunkContext.getStepContext().getStepExecutionContext();
-				//通过执行上下文对象获取跟设置参数
-				ExecutionContext stepEC = chunkContext.getStepContext().getStepExecution().getExecutionContext();
-				stepEC.put("key-step1-step", "value-step1-step");
 
 				System.out.println("----------------1---------------");
-				//作业
-				ExecutionContext jobEC = chunkContext.getStepContext().getStepExecution().getJobExecution()
-						.getExecutionContext();
-				jobEC.put("key-step1-job", "value-step1-job");
 
 				return RepeatStatus.FINISHED; //执行完了
 			}
@@ -92,14 +81,7 @@ public class ExecutionContextJobApplication {
 		return new Tasklet() {
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				//步骤
-				ExecutionContext stepEC = chunkContext.getStepContext().getStepExecution().getExecutionContext();
-				System.err.println(stepEC.get("key-step1-step"));
 				System.out.println("----------------2---------------");
-				//作业
-				ExecutionContext jobEC = chunkContext.getStepContext().getStepExecution().getJobExecution()
-						.getExecutionContext();
-				System.err.println(jobEC.get("key-step1-job"));
 				return RepeatStatus.FINISHED; //执行完了
 			}
 		};
