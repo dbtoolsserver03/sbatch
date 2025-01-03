@@ -1,4 +1,4 @@
-package jp.co.saisk._30_itemprocessor_customize;
+package jp.co.saisk._31_itemwriter_flat;
 
 import lombok.Data;
 
