@@ -1,5 +1,8 @@
 package jp.co.saisk._29_itemprocessor_composite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.sql.DataSource;
 
 import org.springframework.batch.core.Job;
@@ -12,6 +15,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.adapter.ItemProcessorAdapter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -43,50 +47,60 @@ public class CompositeProcessorJob {
 	//job--->step-chunk----reader---writer
 
 	@Bean
-	public ItemWriter<User> itemWriter() {
-		return new ItemWriter<User>() {
+	public ItemWriter<Person> itemWriter() {
+		return new ItemWriter<Person>() {
 
 			@Override
-			public void write(Chunk<? extends User> items) throws Exception {
+			public void write(Chunk<? extends Person> items) throws Exception {
 				items.forEach(System.err::println);
 			}
 		};
 	}
+
 	//BeanValidatingItemProcessor 是 ValidatingItemProcessor 子类
 	@Bean
-	public BeanValidatingItemProcessor<User> beanValidatingItemProcessor() {
-		BeanValidatingItemProcessor<User> itemProcessor = new BeanValidatingItemProcessor<User>();
+	public BeanValidatingItemProcessor<Person> beanValidatingItemProcessor() {
+		BeanValidatingItemProcessor<Person> itemProcessor = new BeanValidatingItemProcessor<Person>();
 		itemProcessor.setFilter(true); //如果不满足数据直接抛弃
 		return itemProcessor;
 	}
 
-	   //name转换大写操作
-    @Bean
-    public UserServiceImpl userService(){
-        return new UserServiceImpl();
-    }
-    //处理逻辑
-    @Bean
-    public ItemProcessorAdapter<User, User> itemProcessorAdapter(){
-        ItemProcessorAdapter<User, User> adapter = new ItemProcessorAdapter<>();
-        adapter.setTargetMethod("toUppeCase");  //将要调用的适配器指定的方法
-        adapter.setTargetObject(userService());   //找到要适配 逻辑类：
-        return adapter;
-
-    }
-//    //组合
-//    @Bean
-//    public CompositeItemProcessor<User, User> compositeItemProcessor(){
-//        CompositeItemProcessor compositeItemProcessor = new CompositeItemProcessor();
-//        //组合多个处理器： 参数校验处理器  适配器处理器
-//        compositeItemProcessor.setDelegates(Arrays.asList(beanValidatingItemProcessor(), itemProcessorAdapter()));
-//        return compositeItemProcessor;
-//    }
-
-    
+	//name转换大写操作
 	@Bean
-	public FlatFileItemReader<User> itemReader() {
-		return new FlatFileItemReaderBuilder<User>()
+	public UserServiceImpl userService() {
+		return new UserServiceImpl();
+	}
+
+	//处理逻辑
+	@Bean
+	public ItemProcessorAdapter<Person, Person> itemProcessorAdapter() {
+		ItemProcessorAdapter<Person, Person> adapter = new ItemProcessorAdapter<>();
+		adapter.setTargetMethod("toUppeCase"); //将要调用的适配器指定的方法
+		adapter.setTargetObject(userService()); //找到要适配 逻辑类：
+		return adapter;
+
+	}
+
+	//组合
+	@Bean
+	public CompositeItemProcessor<Person, Person> compositeItemProcessor() {
+		CompositeItemProcessor<Person, Person> compositeItemProcessor = new CompositeItemProcessor<>();
+
+		// List<>
+		List lst = new ArrayList();
+		lst.add(beanValidatingItemProcessor());
+		lst.add(itemProcessorAdapter());
+
+		compositeItemProcessor.setDelegates(
+				lst);
+
+		// itemProcessorAdapter()
+		return compositeItemProcessor;
+	}
+
+	@Bean
+	public FlatFileItemReader<Person> itemReader() {
+		return new FlatFileItemReaderBuilder<Person>()
 				.name("userItemReader")
 				//获取文件
 				.resource(new ClassPathResource("users-validate.txt"))
@@ -95,7 +109,7 @@ public class CompositeProcessorJob {
 				//按照 # 截取数据之后， 数据怎么命名
 				.names("id", "name", "age")
 				//封装数据--将读取的数据封装到对象：User对象
-				.targetType(User.class)
+				.targetType(Person.class)
 				.build();
 	}
 
@@ -111,7 +125,7 @@ public class CompositeProcessorJob {
 	 */
 	@Bean
 	public Job job() throws Exception {
-		return new JobBuilder("validate-processor-job", jobRepository) // 创建一个 Job 构建器
+		return new JobBuilder("composite-processor-job04", jobRepository) // 创建一个 Job 构建器
 				.start(step())
 				.build();
 	}
@@ -119,9 +133,9 @@ public class CompositeProcessorJob {
 	@Bean
 	public Step step() throws Exception {
 		return new StepBuilder("step", jobRepository) // 创建一个步骤构建器，步骤名为 step1
-				.<User, User> chunk(3, transactionManager) // 设置处理的每个批次的大小为 3，每次处理 3 条记录
+				.<Person, Person> chunk(3, transactionManager) // 设置处理的每个批次的大小为 3，每次处理 3 条记录
 				.reader(itemReader())
-				.processor(beanValidatingItemProcessor())
+				.processor(compositeItemProcessor())
 				.writer(itemWriter())
 				.build(); // 构建步骤
 	}

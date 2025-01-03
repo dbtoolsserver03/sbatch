@@ -1,7 +1,7 @@
 package jp.co.saisk._29_itemprocessor_composite;
 
 public class UserServiceImpl {
-	public User toUppeCase(User user) {
+	public Person toUppeCase(Person user) {
 		user.setName(user.getName().toUpperCase());
 		return user;
 	}
