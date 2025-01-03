@@ -1,4 +1,4 @@
-package jp.co.saisk._31_itemwriter_flat;
+package jp.co.saisk._32_itemwriter_json;
 
 import javax.sql.DataSource;
 
@@ -8,9 +8,10 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
-import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
+import org.springframework.batch.item.json.JsonFileItemWriter;
+import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -41,24 +42,24 @@ public class FlatWriteJob {
 	//job--->step---tasklet
 	//job--->step-chunk----reader---writer
 
+    //json对象的调度器
+    @Bean
+    public JacksonJsonObjectMarshaller<User> jsonObjectMarshaller(){
+        return new JacksonJsonObjectMarshaller<>();
+    }
     //输出到outUser.txt文件
     @Bean
-    public FlatFileItemWriter<User> itemWriter(){
-        return new FlatFileItemWriterBuilder<User>()
-                .name("userFlatItemWriter")
+    public JsonFileItemWriter<User> itemWriter(){
+        return new JsonFileItemWriterBuilder<User>()
+                .name("userJsonItemWriter")
                 //输出位置
-                .resource(new PathResource("C:/work/file/outUser.txt"))
-                .formatted()  //要进行格式输出
-                .format("id: %s,姓名：%s,年龄：%s")  //输出数据格式
-                .names("id", "name", "age")
-                .shouldDeleteIfEmpty(true)   //如果读入数据为空，输出时创建文件直接删除
-                .shouldDeleteIfExists(true) //如果输出文件已经存在，则删除
-                .append(true)  //如果输出文件已经存在， 不删除，直接追加到现有文件中
+                .resource(new PathResource("C:/work/file/outUser.json"))
+                //json对象调度器--将user对象缓存json格式，输出文档中
+                .jsonObjectMarshaller(jsonObjectMarshaller())
                 .build();
     }
-
-
-
+    
+    
     @Bean
     public FlatFileItemReader<User> itemReader(){
         return new FlatFileItemReaderBuilder<User>()
@@ -86,7 +87,7 @@ public class FlatWriteJob {
 	 */
 	@Bean
 	public Job job() throws Exception {
-		return new JobBuilder("flat-writer-job", jobRepository) // 创建一个 Job 构建器
+		return new JobBuilder("json-writer-job", jobRepository) // 创建一个 Job 构建器
 				.start(step())
 				.build();
 	}
