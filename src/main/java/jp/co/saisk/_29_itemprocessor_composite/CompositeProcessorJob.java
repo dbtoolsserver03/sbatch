@@ -1,4 +1,4 @@
-package jp.co.saisk._27_itemprocessor_adapter;
+package jp.co.saisk._29_itemprocessor_composite;
 
 import javax.sql.DataSource;
 
@@ -12,6 +12,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.adapter.ItemProcessorAdapter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,7 +21,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 
 @SpringBootApplication
-public class ValidationProcessorJob {
+public class CompositeProcessorJob {
 
 	@Autowired
 	public JobRepository jobRepository;
@@ -35,7 +36,7 @@ public class ValidationProcessorJob {
 		// 使用 SpringApplication.run 启动 Spring Boot 应用
 		// SpringApplication.exit() 用于退出应用程序并返回一个状态码
 		// SpringApplication.exit() 返回应用程序的退出状态，以便传递给操作系统或调用者
-		System.exit(SpringApplication.exit(SpringApplication.run(ValidationProcessorJob.class, args)));
+		System.exit(SpringApplication.exit(SpringApplication.run(CompositeProcessorJob.class, args)));
 	}
 
 	//job--->step---tasklet
@@ -51,31 +52,19 @@ public class ValidationProcessorJob {
 			}
 		};
 	}
+	//BeanValidatingItemProcessor 是 ValidatingItemProcessor 子类
+	@Bean
+	public BeanValidatingItemProcessor<User> beanValidatingItemProcessor() {
+		BeanValidatingItemProcessor<User> itemProcessor = new BeanValidatingItemProcessor<User>();
+		itemProcessor.setFilter(true); //如果不满足数据直接抛弃
+		return itemProcessor;
+	}
 
-
-    @Bean
-    public FlatFileItemReader<User> itemReader(){
-        return new FlatFileItemReaderBuilder<User>()
-                .name("userItemReader")
-                //获取文件
-                .resource(new ClassPathResource("users-adapter.txt"))
-                //解析数据--指定解析器使用# 分割--默认是 ，号
-                .delimited().delimiter("#")
-                //按照 # 截取数据之后， 数据怎么命名
-                .names("id", "name", "age")
-                //封装数据--将读取的数据封装到对象：User对象
-                .targetType(User.class)
-                .build();
-    }
-
-
-    //已经定义好的 用户名转换类，
-    //当前需求： 使用适配器处理器调用该类UserServiceImpl 的toUppeCase 实现用户名转换成大写
+	   //name转换大写操作
     @Bean
     public UserServiceImpl userService(){
         return new UserServiceImpl();
     }
-
     //处理逻辑
     @Bean
     public ItemProcessorAdapter<User, User> itemProcessorAdapter(){
@@ -85,6 +74,30 @@ public class ValidationProcessorJob {
         return adapter;
 
     }
+//    //组合
+//    @Bean
+//    public CompositeItemProcessor<User, User> compositeItemProcessor(){
+//        CompositeItemProcessor compositeItemProcessor = new CompositeItemProcessor();
+//        //组合多个处理器： 参数校验处理器  适配器处理器
+//        compositeItemProcessor.setDelegates(Arrays.asList(beanValidatingItemProcessor(), itemProcessorAdapter()));
+//        return compositeItemProcessor;
+//    }
+
+    
+	@Bean
+	public FlatFileItemReader<User> itemReader() {
+		return new FlatFileItemReaderBuilder<User>()
+				.name("userItemReader")
+				//获取文件
+				.resource(new ClassPathResource("users-validate.txt"))
+				//解析数据--指定解析器使用# 分割--默认是 ，号
+				.delimited().delimiter("#")
+				//按照 # 截取数据之后， 数据怎么命名
+				.names("id", "name", "age")
+				//封装数据--将读取的数据封装到对象：User对象
+				.targetType(User.class)
+				.build();
+	}
 
 	// tag::jobstep[]
 	/**
@@ -98,7 +111,7 @@ public class ValidationProcessorJob {
 	 */
 	@Bean
 	public Job job() throws Exception {
-		return new JobBuilder("adapter-processor-job01", jobRepository) // 创建一个 Job 构建器
+		return new JobBuilder("validate-processor-job", jobRepository) // 创建一个 Job 构建器
 				.start(step())
 				.build();
 	}
@@ -108,7 +121,7 @@ public class ValidationProcessorJob {
 		return new StepBuilder("step", jobRepository) // 创建一个步骤构建器，步骤名为 step1
 				.<User, User> chunk(3, transactionManager) // 设置处理的每个批次的大小为 3，每次处理 3 条记录
 				.reader(itemReader())
-				.processor(itemProcessorAdapter())
+				.processor(beanValidatingItemProcessor())
 				.writer(itemWriter())
 				.build(); // 构建步骤
 	}
