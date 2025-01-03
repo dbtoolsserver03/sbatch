@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class Person {
+public class User {
 	private Long id;
 	@NotBlank(message = "用户名不能为null或空串")
 	private String name;
